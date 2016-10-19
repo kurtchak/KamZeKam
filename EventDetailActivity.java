@@ -3,9 +3,10 @@ package org.blackbell.kamzekam;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.support.v4.view.MotionEventCompat;
+import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
@@ -28,11 +29,13 @@ public class EventDetailActivity extends AppCompatActivity {
     private ImageView image;
     private ImageButton earlier;
     private ImageButton later;
+    private GestureDetectorCompat mDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_event_detail);
+        mDetector = new GestureDetectorCompat(this, new GestureListener());
 
         Bundle bundle = getIntent().getExtras();
         position = getIntent().getIntExtra(Content.EVENT_POSITION, 0);
@@ -90,32 +93,79 @@ public class EventDetailActivity extends AppCompatActivity {
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
-        int action = MotionEventCompat.getActionMasked(e);
+        this.mDetector.onTouchEvent(e);
+        return super.onTouchEvent(e);
+    }
 
-        switch(action) {
-            case (MotionEvent.ACTION_DOWN):
-//                earlier.setVisibility(View.VISIBLE);
-//                later.setVisibility(View.VISIBLE);
-//                time.setVisibility(View.VISIBLE);
-//                date.setText(event.getDate());
-//                date.animate().translationXBy(50f).scaleYBy(5).setDuration(500);
-                return true;
-            case (MotionEvent.ACTION_MOVE):
-                Log.i("ACTION", "MOVE");
-                return true;
-            case (MotionEvent.ACTION_UP):
-//                earlier.setVisibility(View.GONE);
-//                later.setVisibility(View.GONE);
-//                time.setVisibility(View.GONE);
-//                date.setText(event.getDate() + " " + event.getTime());
-//                date.animate().translationXBy(-50f).scaleYBy(-5).setDuration(500);
-                return true;
-            case (MotionEvent.ACTION_CANCEL):
-                return true;
-            case (MotionEvent.ACTION_OUTSIDE):
-                return true;
-            default:
-                return super.onTouchEvent(e);
+    private final class GestureListener extends GestureDetector.SimpleOnGestureListener {
+
+        private static final int SWIPE_THRESHOLD = 25;
+        private static final int SWIPE_VELOCITY_THRESHOLD = 25;
+
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            boolean result = false;
+            try {
+                float diffY = e2.getY() - e1.getY();
+                float diffX = e2.getX() - e1.getX();
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        if (diffX > 0) {
+                            onSwipeRight();
+                        } else {
+                            onSwipeLeft();
+                        }
+                    }
+                    result = true;
+                } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (diffY > 0) {
+                        onSwipeBottom();
+                    } else {
+                        onSwipeTop();
+                    }
+                }
+                result = true;
+
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+            return result;
         }
     }
+
+    public void onSwipeRight() {
+        Log.i("GESTURE", "Swipe Right");
+        if (position > 0) {
+            Intent intent = new Intent(getApplicationContext(), EventDetailActivity.class);
+            intent.putExtra(Content.EVENT_POSITION, position - 1);
+            startActivity(intent);
+            finish();
+        }
+    }
+
+    public void onSwipeLeft() {
+        Log.i("GESTURE", "Swipe Left");
+        if (position < Content.events.size() - 1) {
+            Intent intent = new Intent(getApplicationContext(), EventDetailActivity.class);
+            intent.putExtra(Content.EVENT_POSITION, position + 1);
+            startActivity(intent);
+            finish();
+        }
+    }
+
+    public void onSwipeTop() {
+        Log.i("GESTURE", "Swipe Top");
+        //TODO:
+    }
+
+    public void onSwipeBottom() {
+        Log.i("GESTURE", "Swipe Bottom");
+        //TODO:
+    }
+
 }
